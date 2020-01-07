@@ -42,10 +42,24 @@ export async function getUserOrganisations(
   username: string,
 ): Promise<string[]> {
   return github.orgs
-    .listForUser({
-      username: username,
-    })
+    .listForUser({ username })
     .then(res => res.data.map(org => org.login))
+}
+
+/**
+ *
+ * Get a single repository
+ *
+ * @param github
+ * @param owner
+ * @param repo
+ */
+export async function getRepo(
+  github: Octokit,
+  owner: string,
+  repo: string,
+): Promise<ReposGetResponse> {
+  return github.repos.get({ owner, repo }).then(({ data }) => data)
 }
 
 /**
@@ -65,22 +79,6 @@ export async function fetchRepos(
       return getRepo(github, owner, repo)
     }),
   )
-}
-
-/**
- *
- * Get a single repository
- *
- * @param github
- * @param owner
- * @param repo
- */
-export async function getRepo(
-  github: Octokit,
-  owner: string,
-  repo: string,
-): Promise<ReposGetResponse> {
-  return github.repos.get({ owner, repo }).then((res: any) => res.data)
 }
 
 /**
@@ -194,7 +192,7 @@ export async function resetBranch(
   repo: string,
   branchName: string,
   defaultBranchName: string,
-) {
+): Promise<void> {
   // Get if the BRANCH_NAME is already existing
   const githubBranch = await github.repos
     .getBranch({
@@ -202,7 +200,7 @@ export async function resetBranch(
       repo,
       branch: branchName,
     })
-    .then((res: any) => res.data)
+    .then(({ data }) => data)
     .catch(() => null)
 
   // Delete the branch in this case
@@ -221,10 +219,10 @@ export async function resetBranch(
       repo,
       ref: `heads/${defaultBranchName}`,
     })
-    .then((res: any) => res.data)
+    .then(({ data }) => data)
 
   // Create the target branch
-  return await github.git.createRef({
+  await github.git.createRef({
     owner,
     repo,
     ref: `refs/heads/${branchName}`,
